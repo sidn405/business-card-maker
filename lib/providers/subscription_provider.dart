@@ -1,0 +1,430 @@
+import 'package:flutter/foundation.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import '../models/subscription.dart';
+
+class SubscriptionProvider extends ChangeNotifier {
+  final InAppPurchase _iap = InAppPurchase.instance;
+  late StreamSubscription<List<PurchaseDetails>> _subscription;
+  
+  Subscription _currentSubscription = Subscription.free();
+  bool _isAvailable = false;
+  List<ProductDetails> _products = [];
+  bool _isLoading = false;
+  String _lastError = '';
+
+  // Backend configuration
+  static const String _backendUrl = 'YOUR_BACKEND_URL_HERE';
+  static const String _apiKey = 'YOUR_API_KEY_HERE';
+
+  Subscription get currentSubscription => _currentSubscription;
+  bool get isAvailable => _isAvailable;
+  List<ProductDetails> get products => _products;
+  bool get isLoading => _isLoading;
+  String get lastError => _lastError;
+
+  // Product IDs
+  static const Set<String> _productIds = {
+    'prostack_premium',
+    'prostack_premium_yearly',
+    'prostack_business',
+    'prostack_business_yearly',
+  };
+
+  Future<void> initialize() async {
+    debugPrint('🔵 [IAP] Initializing subscription provider...');
+    
+    // Check if IAP is available
+    _isAvailable = await _iap.isAvailable();
+    debugPrint('🔵 [IAP] In-app purchases available: $_isAvailable');
+    
+    if (_isAvailable) {
+      // Load products
+      await _loadProducts();
+      
+      // Listen to purchase updates
+      _subscription = _iap.purchaseStream.listen(
+        _onPurchaseUpdate,
+        onError: (error) {
+          debugPrint('🔴 [IAP] Purchase stream error: $error');
+          _lastError = error.toString();
+          notifyListeners();
+        },
+      );
+      
+      // Restore previous purchases
+      await _restorePurchases();
+    } else {
+      debugPrint('🔴 [IAP] In-app purchases NOT available on this device');
+      _lastError = 'In-app purchases not available';
+    }
+    
+    // Load saved subscription
+    await _loadSavedSubscription();
+    notifyListeners();
+    
+    debugPrint('🔵 [IAP] Initialization complete');
+  }
+
+  Future<void> _loadProducts() async {
+    debugPrint('🔵 [IAP] Loading products...');
+    debugPrint('🔵 [IAP] Product IDs: $_productIds');
+    
+    try {
+      final response = await _iap.queryProductDetails(_productIds);
+      
+      if (response.error != null) {
+        debugPrint('🔴 [IAP] Error loading products: ${response.error}');
+        _lastError = 'Failed to load products: ${response.error!.message}';
+        notifyListeners();
+        return;
+      }
+
+      _products = response.productDetails;
+      debugPrint('🟢 [IAP] Loaded ${_products.length} products:');
+      for (var product in _products) {
+        debugPrint('  - ${product.id}: ${product.title} (${product.price})');
+      }
+      
+      if (response.notFoundIDs.isNotEmpty) {
+        debugPrint('🟡 [IAP] Products not found: ${response.notFoundIDs}');
+      }
+      
+      notifyListeners();
+    } catch (e) {
+      debugPrint('🔴 [IAP] Exception querying products: $e');
+      _lastError = 'Exception loading products: $e';
+      notifyListeners();
+    }
+  }
+
+  Future<void> _loadSavedSubscription() async {
+    debugPrint('🔵 [Storage] Loading saved subscription...');
+    
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final tierString = prefs.getString('subscription_tier');
+      final expiryString = prefs.getString('subscription_expiry');
+      
+      debugPrint('🔵 [Storage] Saved tier: $tierString');
+      debugPrint('🔵 [Storage] Saved expiry: $expiryString');
+      
+      if (tierString != null) {
+        SubscriptionTier tier = SubscriptionTier.values.firstWhere(
+          (e) => e.toString() == tierString,
+          orElse: () => SubscriptionTier.free,
+        );
+        
+        DateTime? expiryDate;
+        if (expiryString != null) {
+          expiryDate = DateTime.parse(expiryString);
+        }
+        
+        // Check if subscription is still active
+        bool isActive = true;
+        if (expiryDate != null && expiryDate.isBefore(DateTime.now())) {
+          isActive = false;
+          tier = SubscriptionTier.free;
+          debugPrint('🟡 [Storage] Subscription expired');
+        }
+        
+        _currentSubscription = Subscription(
+          tier: tier,
+          expiryDate: expiryDate,
+          isActive: isActive,
+        );
+        
+        debugPrint('🟢 [Storage] Loaded subscription: ${tier.toString()}');
+      } else {
+        debugPrint('🔵 [Storage] No saved subscription found, using free tier');
+      }
+    } catch (e) {
+      debugPrint('🔴 [Storage] Error loading subscription: $e');
+    }
+  }
+
+  Future<void> _saveSubscription() async {
+    debugPrint('🔵 [Storage] Saving subscription...');
+    
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('subscription_tier', _currentSubscription.tier.toString());
+      if (_currentSubscription.expiryDate != null) {
+        await prefs.setString('subscription_expiry', _currentSubscription.expiryDate!.toIso8601String());
+      }
+      
+      debugPrint('🟢 [Storage] Subscription saved: ${_currentSubscription.tier}');
+    } catch (e) {
+      debugPrint('🔴 [Storage] Error saving subscription: $e');
+    }
+  }
+
+  void _onPurchaseUpdate(List<PurchaseDetails> purchases) {
+    debugPrint('🔵 [IAP] Purchase update received: ${purchases.length} purchases');
+    
+    for (var purchase in purchases) {
+      debugPrint('🔵 [IAP] Purchase status: ${purchase.status}');
+      debugPrint('🔵 [IAP] Product ID: ${purchase.productID}');
+      
+      if (purchase.status == PurchaseStatus.purchased) {
+        debugPrint('🟢 [IAP] Purchase completed!');
+        _verifyAndDeliverProduct(purchase);
+      } else if (purchase.status == PurchaseStatus.restored) {
+        debugPrint('🟢 [IAP] Purchase restored!');
+        _verifyAndDeliverProduct(purchase);
+      } else if (purchase.status == PurchaseStatus.error) {
+        debugPrint('🔴 [IAP] Purchase error: ${purchase.error}');
+        _lastError = 'Purchase failed: ${purchase.error?.message ?? "Unknown error"}';
+        _isLoading = false;
+        notifyListeners();
+      } else if (purchase.status == PurchaseStatus.pending) {
+        debugPrint('🟡 [IAP] Purchase pending...');
+        _lastError = 'Purchase pending...';
+        notifyListeners();
+      } else if (purchase.status == PurchaseStatus.canceled) {
+        debugPrint('🟡 [IAP] Purchase canceled by user');
+        _lastError = 'Purchase canceled';
+        _isLoading = false;
+        notifyListeners();
+      }
+
+      if (purchase.pendingCompletePurchase) {
+        debugPrint('🔵 [IAP] Completing purchase...');
+        _iap.completePurchase(purchase);
+      }
+    }
+  }
+
+  Future<void> _verifyAndDeliverProduct(PurchaseDetails purchase) async {
+    debugPrint('🔵 [Verify] Starting purchase verification...');
+    
+    try {
+      // Get purchase token
+      String? purchaseToken;
+      
+      if (Platform.isAndroid) {
+        purchaseToken = purchase.verificationData.serverVerificationData;
+        debugPrint('🔵 [Verify] Android purchase token: ${purchaseToken?.substring(0, 20)}...');
+      } else if (Platform.isIOS) {
+        purchaseToken = purchase.verificationData.serverVerificationData;
+        debugPrint('🔵 [Verify] iOS purchase token: ${purchaseToken?.substring(0, 20)}...');
+      }
+      
+      if (purchaseToken == null || purchaseToken.isEmpty) {
+        debugPrint('🔴 [Verify] No purchase token available!');
+        _lastError = 'No purchase token';
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
+      
+      debugPrint('🔵 [Verify] Verifying with backend: $_backendUrl');
+      
+      // Verify with backend
+      final response = await http.post(
+        Uri.parse('$_backendUrl/api/v1/subscriptions/verify'),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': _apiKey,
+        },
+        body: jsonEncode({
+          'product_id': purchase.productID,
+          'purchase_token': purchaseToken,
+          'platform': Platform.isAndroid ? 'android' : 'ios',
+        }),
+      ).timeout(const Duration(seconds: 10));
+      
+      debugPrint('🔵 [Verify] Backend response status: ${response.statusCode}');
+      debugPrint('🔵 [Verify] Backend response body: ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        
+        if (data['is_valid'] == true) {
+          debugPrint('🟢 [Verify] Purchase verified successfully!');
+          
+          // Parse subscription tier
+          SubscriptionTier tier = SubscriptionTier.free;
+          if (data['subscription_tier'] == 'premium') {
+            tier = SubscriptionTier.premium;
+          } else if (data['subscription_tier'] == 'business') {
+            tier = SubscriptionTier.business;
+          }
+          
+          debugPrint('🔵 [Verify] Subscription tier: $tier');
+          
+          // Parse expiry date
+          DateTime? expiryDate;
+          if (data['expiry_date'] != null) {
+            expiryDate = DateTime.parse(data['expiry_date']);
+            debugPrint('🔵 [Verify] Expiry date: $expiryDate');
+          }
+          
+          // Update subscription
+          _currentSubscription = Subscription(
+            tier: tier,
+            expiryDate: expiryDate,
+            isActive: true,
+          );
+          
+          // Save to SharedPreferences
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('purchase_token', purchaseToken);
+          await prefs.setString('last_product_id', purchase.productID);
+          await _saveSubscription();
+          
+          _isLoading = false;
+          _lastError = '';
+          notifyListeners();
+          
+          debugPrint('🟢 [Verify] Subscription activated: ${tier.toString()}');
+        } else {
+          debugPrint('🔴 [Verify] Purchase verification failed: ${data['message']}');
+          _lastError = 'Verification failed: ${data['message']}';
+          _isLoading = false;
+          notifyListeners();
+        }
+      } else {
+        debugPrint('🔴 [Verify] Backend verification error: ${response.statusCode}');
+        _lastError = 'Backend error: ${response.statusCode}';
+        _isLoading = false;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('🔴 [Verify] Exception verifying purchase: $e');
+      _lastError = 'Verification error: $e';
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> purchaseSubscription(String productId) async {
+    debugPrint('═══════════════════════════════════════════════');
+    debugPrint('🔵 [Purchase] Starting purchase flow...');
+    debugPrint('🔵 [Purchase] Product ID: $productId');
+    debugPrint('═══════════════════════════════════════════════');
+    
+    if (!_isAvailable) {
+      debugPrint('🔴 [Purchase] IAP not available');
+      _lastError = 'In-app purchases not available';
+      notifyListeners();
+      return;
+    }
+
+    debugPrint('🔵 [Purchase] Looking for product in ${_products.length} loaded products...');
+    
+    ProductDetails? product;
+    try {
+      product = _products.firstWhere((p) => p.id == productId);
+      debugPrint('🟢 [Purchase] Found product: ${product.title}');
+    } catch (e) {
+      debugPrint('🔴 [Purchase] Product not found: $productId');
+      debugPrint('🔴 [Purchase] Available products: ${_products.map((p) => p.id).toList()}');
+      _lastError = 'Product not found: $productId';
+      notifyListeners();
+      return;
+    }
+
+    _isLoading = true;
+    _lastError = '';
+    notifyListeners();
+    
+    debugPrint('🔵 [Purchase] Creating purchase param...');
+
+    try {
+      final purchaseParam = PurchaseParam(productDetails: product);
+      
+      debugPrint('🔵 [Purchase] Initiating purchase...');
+      debugPrint('🔵 [Purchase] Platform: ${Platform.isAndroid ? "Android" : "iOS"}');
+      
+      bool result;
+      if (Platform.isAndroid) {
+        result = await _iap.buyNonConsumable(purchaseParam: purchaseParam);
+      } else if (Platform.isIOS) {
+        result = await _iap.buyNonConsumable(purchaseParam: purchaseParam);
+      } else {
+        debugPrint('🔴 [Purchase] Unsupported platform');
+        _lastError = 'Unsupported platform';
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
+      
+      debugPrint('🔵 [Purchase] Purchase initiated: $result');
+      
+      if (!result) {
+        debugPrint('🔴 [Purchase] Failed to initiate purchase');
+        _lastError = 'Failed to start purchase';
+        _isLoading = false;
+        notifyListeners();
+      } else {
+        debugPrint('🟢 [Purchase] Waiting for purchase stream update...');
+      }
+    } catch (e) {
+      debugPrint('🔴 [Purchase] Exception during purchase: $e');
+      _lastError = 'Purchase error: $e';
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _restorePurchases() async {
+    debugPrint('🔵 [Restore] Restoring purchases...');
+    try {
+      await _iap.restorePurchases();
+      debugPrint('🟢 [Restore] Restore purchases completed');
+    } catch (e) {
+      debugPrint('🔴 [Restore] Error restoring purchases: $e');
+    }
+  }
+
+  Future<void> restorePurchases() async {
+    debugPrint('🔵 [Restore] User requested restore purchases');
+    _isLoading = true;
+    _lastError = '';
+    notifyListeners();
+    
+    await _restorePurchases();
+    
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  // Synchronous check for UI
+  bool canAccessFeature(String feature) {
+    switch (feature) {
+      case 'custom_templates':
+        return _currentSubscription.hasCustomTemplates;
+      case 'color_themes':
+        return _currentSubscription.hasColorThemes;
+      case 'company_logos':
+        return _currentSubscription.hasCompanyLogos;
+      case 'ai_resume':
+        return _currentSubscription.hasAIResume;
+      case 'qr_codes':
+        return _currentSubscription.hasQRCodes;
+      case 'bulk_export':
+        return _currentSubscription.hasBulkExport;
+      default:
+        return false;
+    }
+  }
+
+  // Check if user has reached card limit
+  bool canAddCard(int currentCardCount) {
+    final maxCards = _currentSubscription.maxCards;
+    if (maxCards == -1) return true;
+    return currentCardCount < maxCards;
+  }
+
+  @override
+  void dispose() {
+    debugPrint('🔵 [IAP] Disposing subscription provider');
+    _subscription.cancel();
+    super.dispose();
+  }
+}

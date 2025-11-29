@@ -1,0 +1,62 @@
+name: business_card_maker
+description: A business card scanner and maker app with AI resume builder
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # UI & Icons
+  cupertino_icons: ^1.0.6
+  
+  # Camera & Image
+  camera: ^0.11.3
+  image_picker: ^1.0.4
+  image: ^4.1.3
+  
+  # OCR & ML
+  google_mlkit_text_recognition: ^0.15.0
+  
+  # State Management
+  provider: ^6.1.1
+  
+  # Storage
+  shared_preferences: ^2.2.2
+  sqflite: ^2.3.0
+  path_provider: ^2.1.1
+  
+  # PDF Generation
+  pdf: ^3.10.4
+  printing: ^5.11.1
+  
+  # Sharing
+  share_plus: ^12.0.1
+  qr_flutter: ^4.1.0
+  url_launcher: ^6.2.1
+  
+  # In-App Purchase
+  in_app_purchase: ^3.1.13
+  
+  # Permissions
+  permission_handler: ^12.0.1
+  
+  # Utilities
+  intl: ^0.20.2
+  uuid: ^4.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/images/
+    - assets/templates/
+    - assets/logos/

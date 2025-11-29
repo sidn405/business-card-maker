@@ -24,12 +24,25 @@ __pycache__/
 .env
 .env.*
 *.env
-venv/
+.venv/
+env/
+ENV/
+pip-log.txt
+pip-delete-this-directory.txt
 
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
 # is commented out by default.
 #.vscode/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
 
 # Flutter/Dart/Pub related
 **/doc/api/
@@ -42,6 +55,8 @@ lib/
 android/
 ios/
 build/
+.dart_tool/
+.packages
 pubspec.yaml
 pubspec.lock
 .flutter-plugins
