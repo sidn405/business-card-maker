@@ -8,6 +8,7 @@ import 'dart:io';
 import '../models/subscription.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import '../config.dart';
 
 class SubscriptionProvider extends ChangeNotifier {
   final InAppPurchase _iap = InAppPurchase.instance;
