@@ -4,6 +4,10 @@ ProStack Backend with Database License Management
 
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+
+from .db import create_db_and_tables
+from .routers import iap
 from pydantic import BaseModel
 from typing import Optional
 import os
@@ -15,8 +19,13 @@ import httpx
 from google.oauth2 import service_account
 from google.auth.transport.requests import Request
 
-# Initialize FastAPI
-app = FastAPI(title="ProStack API")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Create tables on startup
+    create_db_and_tables()
+    yield
+
+app = FastAPI(title="ProStack API", lifespan=lifespan)
 
 # CORS
 app.add_middleware(
@@ -26,6 +35,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(iap.router)
 
 # Configuration
 PROSTACK_API_KEY = os.getenv("PROSTACK_API_KEY")
@@ -245,6 +257,9 @@ async def root():
         "database": "connected" if DATABASE_URL else "not configured"
     }
 
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}
 
 @app.post("/api/v1/subscriptions/verify")
 async def verify_purchase(
