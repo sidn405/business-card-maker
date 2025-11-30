@@ -20,7 +20,7 @@ class SubscriptionProvider extends ChangeNotifier {
 
   // Backend configuration
   static const String _backendUrl = 'https://business-card-maker-production.up.railway.app';
-  static const String _apiKey = '';
+  //static const String _apiKey = '';
 
   Subscription get currentSubscription => _currentSubscription;
   bool get isAvailable => _isAvailable;
