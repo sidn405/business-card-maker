@@ -15,7 +15,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.fourdgaming.prostack"
+    namespace = "com.fourdgamimg.prostack"
     compileSdk = 36
 
     compileOptions {
@@ -28,7 +28,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.fourdgaming.prostack"
+        applicationId = "com.fourdgamimg.prostack"
         minSdk = flutter.minSdkVersion
         targetSdk = 36
         versionCode = 2

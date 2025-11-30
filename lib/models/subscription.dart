@@ -58,7 +58,7 @@ class Subscription {
       case SubscriptionTier.premium:
         return 'Premium';
       case SubscriptionTier.business:
-        return 'business';
+        return 'Business';
     }
   }
 

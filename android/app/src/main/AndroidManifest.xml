@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.fourdgaming.prostack">
+    package="com.fourdgamimg.prostack">
     
     <!-- Camera permissions -->
     <uses-permission android:name="android.permission.CAMERA" />

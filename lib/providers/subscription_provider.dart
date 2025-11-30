@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import '../models/subscription.dart';
+import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 
 class SubscriptionProvider extends ChangeNotifier {
   final InAppPurchase _iap = InAppPurchase.instance;
@@ -18,8 +19,8 @@ class SubscriptionProvider extends ChangeNotifier {
   String _lastError = '';
 
   // Backend configuration
-  static const String _backendUrl = 'YOUR_BACKEND_URL_HERE';
-  static const String _apiKey = 'YOUR_API_KEY_HERE';
+  static const String _backendUrl = 'https://business-card-maker-production.up.railway.app';
+  static const String _apiKey = '';
 
   Subscription get currentSubscription => _currentSubscription;
   bool get isAvailable => _isAvailable;
@@ -336,23 +337,15 @@ class SubscriptionProvider extends ChangeNotifier {
     debugPrint('🔵 [Purchase] Creating purchase param...');
 
     try {
-      final purchaseParam = PurchaseParam(productDetails: product);
+      // For Android subscriptions with base plans, use GooglePlayPurchaseParam
+      final purchaseParam = GooglePlayPurchaseParam(
+        productDetails: product,
+      );
       
       debugPrint('🔵 [Purchase] Initiating purchase...');
       debugPrint('🔵 [Purchase] Platform: ${Platform.isAndroid ? "Android" : "iOS"}');
       
-      bool result;
-      if (Platform.isAndroid) {
-        result = await _iap.buyNonConsumable(purchaseParam: purchaseParam);
-      } else if (Platform.isIOS) {
-        result = await _iap.buyNonConsumable(purchaseParam: purchaseParam);
-      } else {
-        debugPrint('🔴 [Purchase] Unsupported platform');
-        _lastError = 'Unsupported platform';
-        _isLoading = false;
-        notifyListeners();
-        return;
-      }
+      bool result = await _iap.buyNonConsumable(purchaseParam: purchaseParam);
       
       debugPrint('🔵 [Purchase] Purchase initiated: $result');
       
