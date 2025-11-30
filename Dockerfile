@@ -1,10 +1,13 @@
 # ---- Python FastAPI backend only ----
 FROM python:3.12-slim
 
+ARG PROSTACK_API_KEY
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=on \
-    PIP_NO_CACHE_DIR=on
+    PIP_NO_CACHE_DIR=on \
+    PROSTACK_API_KEY=$PROSTACK_API_KEY
 
 WORKDIR /app
 
@@ -19,6 +22,7 @@ RUN pip install -r requirements.txt
 
 # copy app code
 COPY app ./app
+RUN flutter build apk --dart-define=PROSTACK_API_KEY=$PROSTACK_API_KEY --release
 
 # default port Railway exposes
 ENV PORT=8080

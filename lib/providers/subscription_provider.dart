@@ -7,7 +7,6 @@ import 'dart:convert';
 import 'dart:io';
 import '../models/subscription.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class SubscriptionProvider extends ChangeNotifier {
   final InAppPurchase _iap = InAppPurchase.instance;
@@ -21,7 +20,8 @@ class SubscriptionProvider extends ChangeNotifier {
 
   // Backend configuration
   static const String _backendUrl = 'https://business-card-maker-production.up.railway.app';
-  static String get _apiKey => dotenv.env['API_KEY'] ?? '';
+  // ProStack API Key for authenticating with your backend
+  static const String _prostackApiKey = String.fromEnvironment('PROSTACK_API_KEY', defaultValue: '');
 
   Subscription get currentSubscription => _currentSubscription;
   bool get isAvailable => _isAvailable;
@@ -39,6 +39,7 @@ class SubscriptionProvider extends ChangeNotifier {
 
   Future<void> initialize() async {
     debugPrint('🔵 [IAP] Initializing subscription provider...');
+    debugPrint('🔵 [Config] ProStack API Key present: ${_prostackApiKey.isNotEmpty}');
     
     // Check if IAP is available
     _isAvailable = await _iap.isAvailable();
@@ -226,12 +227,13 @@ class SubscriptionProvider extends ChangeNotifier {
       
       debugPrint('🔵 [Verify] Verifying with backend: $_backendUrl');
       
-      // Verify with backend
+      // Send purchase data to backend for verification
+      // Backend uses PROSTACK_API_KEY for authentication
       final response = await http.post(
         Uri.parse('$_backendUrl/api/v1/subscriptions/verify'),
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': _apiKey,
+          'X-API-Key': _prostackApiKey,  // ProStack API key for backend auth
         },
         body: jsonEncode({
           'product_id': purchase.productID,
