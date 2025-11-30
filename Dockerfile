@@ -22,7 +22,6 @@ RUN pip install -r requirements.txt
 
 # copy app code
 COPY app ./app
-RUN flutter build apk --dart-define=PROSTACK_API_KEY=$PROSTACK_API_KEY --release
 
 # default port Railway exposes
 ENV PORT=8080
