@@ -44,7 +44,7 @@ if not openai.api_key:
 PROSTACK_API_KEY = os.getenv("PROSTACK_API_KEY", "your-secure-api-key-here")
 
 # Google Play Configuration
-GOOGLE_PLAY_PACKAGE_NAME = "com.fourdgaming.prostack"
+GOOGLE_PLAY_PACKAGE_NAME = "com.fourdgamimg.prostack"
 GOOGLE_SERVICE_ACCOUNT_JSON = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")  # JSON string of service account
 
 # Backblaze B2 Configuration (use S3-compatible API)

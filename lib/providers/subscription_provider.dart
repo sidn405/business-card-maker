@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'dart:io';
 import '../models/subscription.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class SubscriptionProvider extends ChangeNotifier {
   final InAppPurchase _iap = InAppPurchase.instance;
@@ -20,7 +21,7 @@ class SubscriptionProvider extends ChangeNotifier {
 
   // Backend configuration
   static const String _backendUrl = 'https://business-card-maker-production.up.railway.app';
-  //static const String _apiKey = '';
+  static String get _apiKey => dotenv.env['API_KEY'] ?? '';
 
   Subscription get currentSubscription => _currentSubscription;
   bool get isAvailable => _isAvailable;
@@ -304,10 +305,10 @@ class SubscriptionProvider extends ChangeNotifier {
   }
 
   Future<void> purchaseSubscription(String productId) async {
-    debugPrint('═══════════════════════════════════════════════');
+    debugPrint('══════════════════════════════════════════════');
     debugPrint('🔵 [Purchase] Starting purchase flow...');
     debugPrint('🔵 [Purchase] Product ID: $productId');
-    debugPrint('═══════════════════════════════════════════════');
+    debugPrint('══════════════════════════════════════════════');
     
     if (!_isAvailable) {
       debugPrint('🔴 [Purchase] IAP not available');

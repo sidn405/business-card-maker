@@ -9,6 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_dotenv: ^5.1.0
   
   # UI & Icons
   cupertino_icons: ^1.0.6
@@ -40,7 +41,7 @@ dependencies:
   
   # In-App Purchase
   in_app_purchase: ^3.1.13
-  in_app_purchase_android: ^0.3.0+13
+  in_app_purchase_android: ^0.4.0+8
   
   # Permissions
   permission_handler: ^12.0.1
