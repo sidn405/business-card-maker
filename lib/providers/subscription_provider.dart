@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'dart:io';
 import '../models/subscription.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 
 class SubscriptionProvider extends ChangeNotifier {
   final InAppPurchase _iap = InAppPurchase.instance;
@@ -21,7 +22,11 @@ class SubscriptionProvider extends ChangeNotifier {
   // Backend configuration
   static const String _backendUrl = 'https://business-card-maker-production.up.railway.app';
   // ProStack API Key for authenticating with your backend
+  // MUST be provided via --dart-define=PROSTACK_API_KEY=xxx at build time
   static const String _prostackApiKey = String.fromEnvironment('PROSTACK_API_KEY', defaultValue: '');
+  
+  // Device ID for license management
+  String? _deviceId;
 
   Subscription get currentSubscription => _currentSubscription;
   bool get isAvailable => _isAvailable;
@@ -37,9 +42,41 @@ class SubscriptionProvider extends ChangeNotifier {
     'prostack_business_yearly',
   };
 
+  Future<String> _getDeviceId() async {
+    if (_deviceId != null) return _deviceId!;
+    
+    try {
+      final deviceInfo = DeviceInfoPlugin();
+      if (Platform.isAndroid) {
+        final androidInfo = await deviceInfo.androidInfo;
+        _deviceId = androidInfo.id; // Android ID
+      } else if (Platform.isIOS) {
+        final iosInfo = await deviceInfo.iosInfo;
+        _deviceId = iosInfo.identifierForVendor; // iOS Vendor ID
+      }
+      debugPrint('🔵 [Device] Device ID: $_deviceId');
+      return _deviceId ?? 'unknown';
+    } catch (e) {
+      debugPrint('🔴 [Device] Error getting device ID: $e');
+      _deviceId = 'unknown';
+      return _deviceId!;
+    }
+  }
+
   Future<void> initialize() async {
     debugPrint('🔵 [IAP] Initializing subscription provider...');
     debugPrint('🔵 [Config] ProStack API Key present: ${_prostackApiKey.isNotEmpty}');
+    
+    if (_prostackApiKey.isEmpty) {
+      debugPrint('🔴 [Config] CRITICAL: PROSTACK_API_KEY not configured!');
+      debugPrint('🔴 [Config] Build with: flutter build apk --dart-define=PROSTACK_API_KEY=xxx');
+      _lastError = 'App not configured properly. Please contact support.';
+      notifyListeners();
+      return;
+    }
+    
+    // Get device ID
+    await _getDeviceId();
     
     // Check if IAP is available
     _isAvailable = await _iap.isAvailable();
@@ -227,6 +264,9 @@ class SubscriptionProvider extends ChangeNotifier {
       
       debugPrint('🔵 [Verify] Verifying with backend: $_backendUrl');
       
+      // Get device ID
+      final deviceId = await _getDeviceId();
+      
       // Send purchase data to backend for verification
       // Backend uses PROSTACK_API_KEY for authentication
       final response = await http.post(
@@ -239,6 +279,7 @@ class SubscriptionProvider extends ChangeNotifier {
           'product_id': purchase.productID,
           'purchase_token': purchaseToken,
           'platform': Platform.isAndroid ? 'android' : 'ios',
+          'device_id': deviceId,  // Send device ID for license tracking
         }),
       ).timeout(const Duration(seconds: 10));
       
