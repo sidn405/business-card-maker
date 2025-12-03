@@ -1,4 +1,5 @@
 import 'package:uuid/uuid.dart';
+import 'card_template.dart';
 
 class BusinessCard {
   final String id;
@@ -13,6 +14,9 @@ class BusinessCard {
   final String? imagePath;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final CardTemplateType? template;
+  final String? colorTheme;  // ADD THIS - stores custom color hex
+  final String? logoPath;
 
   BusinessCard({
     String? id,
@@ -27,6 +31,9 @@ class BusinessCard {
     this.imagePath,
     DateTime? createdAt,
     DateTime? updatedAt,
+    this.template,
+    this.colorTheme,  // ADD THIS
+    this.logoPath,    // ADD THIS
   })  : id = id ?? const Uuid().v4(),
         createdAt = createdAt ?? DateTime.now(),
         updatedAt = updatedAt ?? DateTime.now();
@@ -246,6 +253,9 @@ class BusinessCard {
       'imagePath': imagePath,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
+      'template': template?.toString(),
+      'colorTheme': colorTheme,  // ADD THIS
+      'logoPath': logoPath,
     };
   }
 
@@ -263,6 +273,14 @@ class BusinessCard {
       imagePath: json['imagePath'],
       createdAt: DateTime.parse(json['createdAt']),
       updatedAt: DateTime.parse(json['updatedAt']),
+      template: json['template'] != null
+          ? CardTemplateType.values.firstWhere(
+              (e) => e.toString() == json['template'],
+              orElse: () => CardTemplateType.classic,
+            )
+          : null,
+      colorTheme: json['colorTheme'],  // ADD THIS
+      logoPath: json['logoPath'],
     );
   }
 
@@ -276,6 +294,10 @@ class BusinessCard {
     String? address,
     String? notes,
     String? imagePath,
+    DateTime? updatedAt,
+    CardTemplateType? template,
+    String? colorTheme,  // ADD THIS
+    String? logoPath,
   }) {
     return BusinessCard(
       id: id,
@@ -289,7 +311,10 @@ class BusinessCard {
       notes: notes ?? this.notes,
       imagePath: imagePath ?? this.imagePath,
       createdAt: createdAt,
-      updatedAt: DateTime.now(),
+      updatedAt: updatedAt ?? DateTime.now(),
+      template: template ?? this.template,
+      colorTheme: colorTheme ?? this.colorTheme,  // ADD THIS
+      logoPath: logoPath ?? this.logoPath,
     );
   }
 

@@ -1,0 +1,11 @@
+analyzer:
+  exclude:
+    - android/**
+    - ios/**
+    - build/**
+    - .dart_tool/**
+
+linter:
+  rules:
+    avoid_print: false
+    prefer_const_constructors: false

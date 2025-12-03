@@ -18,8 +18,9 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDatabase,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -37,9 +38,23 @@ class DatabaseService {
         notes TEXT,
         imagePath TEXT,
         createdAt TEXT NOT NULL,
-        updatedAt TEXT NOT NULL
+        updatedAt TEXT NOT NULL,
+        template TEXT NOT NULL,
+        colorTheme TEXT NOT NULL,
+        logoPath TEXT NOT NULL
       )
     ''');
+  }
+
+  // ADD THIS METHOD FOR MIGRATION
+  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // Add new columns for version 2
+      await db.execute('ALTER TABLE business_cards ADD COLUMN template TEXT');
+      await db.execute('ALTER TABLE business_cards ADD COLUMN colorTheme TEXT');
+      await db.execute('ALTER TABLE business_cards ADD COLUMN logoPath TEXT');
+      print('✅ Database upgraded to version 2: Added template, colorTheme, logoPath columns');
+    }
   }
 
   Future<void> initialize() async {

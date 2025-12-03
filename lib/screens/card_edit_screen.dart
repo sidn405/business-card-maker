@@ -2,7 +2,15 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/business_card.dart';
+import '../models/card_template.dart';  // ADD THIS
+//import '../models/subscription.dart';  // ADD THIS
 import '../providers/business_card_provider.dart';
+import '../providers/subscription_provider.dart';  // ADD THIS
+import 'template_picker_screen.dart';  // ADD THIS
+//import '../models/color_theme.dart';
+import 'color_theme_picker_screen.dart';
+import 'logo_upload_screen.dart';
+import 'subscription_screen.dart';  // ADD THIS
 
 class CardEditScreen extends StatefulWidget {
   final BusinessCard card;
@@ -28,6 +36,10 @@ class _CardEditScreenState extends State<CardEditScreen> {
   late TextEditingController _addressController;
   late TextEditingController _notesController;
 
+  CardTemplateType? _selectedTemplate;
+  String? _selectedColorTheme;  // ADD THIS
+  String? _selectedLogoPath;    // ADD THIS
+
   @override
   void initState() {
     super.initState();
@@ -39,6 +51,10 @@ class _CardEditScreenState extends State<CardEditScreen> {
     _websiteController = TextEditingController(text: widget.card.website);
     _addressController = TextEditingController(text: widget.card.address);
     _notesController = TextEditingController(text: widget.card.notes);
+    _notesController = TextEditingController(text: widget.card.notes);
+    _selectedTemplate = widget.card.template;
+    _selectedColorTheme = widget.card.colorTheme;  // ADD THIS
+    _selectedLogoPath = widget.card.logoPath;      // ADD THIS
   }
 
   @override
@@ -71,6 +87,9 @@ class _CardEditScreenState extends State<CardEditScreen> {
       website: _websiteController.text.trim(),
       address: _addressController.text.trim(),
       notes: _notesController.text.trim(),
+      template: _selectedTemplate,
+      colorTheme: _selectedColorTheme,  // ADD THIS
+      logoPath: _selectedLogoPath,
     );
 
     try {
@@ -128,8 +147,237 @@ class _CardEditScreenState extends State<CardEditScreen> {
                   fit: BoxFit.cover,
                 ),
               ),
-            
+
             const SizedBox(height: 20),
+            
+            // ADD TEMPLATE PICKER BUTTON HERE
+            Consumer<SubscriptionProvider>(
+              builder: (context, subProvider, child) {
+                final hasTemplateAccess = subProvider.canAccessFeature('custom_templates');
+                
+                return Card(
+                  child: ListTile(
+                    leading: Icon(
+                      Icons.palette,
+                      color: hasTemplateAccess ? Colors.pink : Colors.grey,
+                    ),
+                    title: const Text('Card Template'),
+                    subtitle: Text(
+                      _selectedTemplate != null
+                          ? CardTemplate.getTemplate(_selectedTemplate!).name
+                          : 'Classic (Default)',
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (!hasTemplateAccess)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.amber,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              'PREMIUM',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.arrow_forward_ios, size: 16),
+                      ],
+                    ),
+                    onTap: () {
+                      if (!hasTemplateAccess) {
+                        // Show upgrade dialog
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SubscriptionScreen(),
+                          ),
+                        );
+                        return;
+                      }
+                      
+                      // Show template picker
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => TemplatePickerScreen(
+                            currentTemplate: _selectedTemplate,
+                            onTemplateSelected: (template) {
+                              setState(() {
+                                _selectedTemplate = template;
+                              });
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+            
+            const SizedBox(height: 16),
+
+            // After the template picker card, add these two cards:
+
+            // Color Theme Picker
+            Consumer<SubscriptionProvider>(
+              builder: (context, subProvider, child) {
+                final hasColorAccess = subProvider.canAccessFeature('color_themes');
+                
+                return Card(
+                  child: ListTile(
+                    leading: Icon(
+                      Icons.color_lens,
+                      color: hasColorAccess ? Colors.purple : Colors.grey,
+                    ),
+                    title: const Text('Color Theme'),
+                    subtitle: Text(
+                      _selectedColorTheme != null
+                          ? 'Custom theme selected'
+                          : 'Default colors',
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (!hasColorAccess)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.amber,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              'PREMIUM',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.arrow_forward_ios, size: 16),
+                      ],
+                    ),
+                    onTap: () {
+                      if (!hasColorAccess) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SubscriptionScreen(),
+                          ),
+                        );
+                        return;
+                      }
+                      
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ColorThemePickerScreen(
+                            currentTheme: _selectedColorTheme,
+                            onThemeSelected: (theme) {
+                              setState(() {
+                                _selectedColorTheme = theme;
+                              });
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+
+            const SizedBox(height: 12),
+
+            // Company Logo Upload
+            Consumer<SubscriptionProvider>(
+              builder: (context, subProvider, child) {
+                final hasLogoAccess = subProvider.canAccessFeature('company_logos');
+                
+                return Card(
+                  child: ListTile(
+                    leading: Icon(
+                      Icons.business,
+                      color: hasLogoAccess ? Colors.blue : Colors.grey,
+                    ),
+                    title: const Text('Company Logo'),
+                    subtitle: Text(
+                      _selectedLogoPath != null
+                          ? 'Logo uploaded'
+                          : 'No logo',
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (!hasLogoAccess)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.amber,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              'PREMIUM',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.arrow_forward_ios, size: 16),
+                      ],
+                    ),
+                    onTap: () {
+                      if (!hasLogoAccess) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SubscriptionScreen(),
+                          ),
+                        );
+                        return;
+                      }
+                      
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => LogoUploadScreen(
+                            currentLogoPath: _selectedLogoPath,
+                            onLogoSelected: (logoPath) {
+                              setState(() {
+                                _selectedLogoPath = logoPath;
+                              });
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+            
+            const SizedBox(height: 16),
             
             // Name field
             TextField(
@@ -143,7 +391,7 @@ class _CardEditScreenState extends State<CardEditScreen> {
             ),
             
             const SizedBox(height: 16),
-            
+
             // Title field
             TextField(
               controller: _titleController,

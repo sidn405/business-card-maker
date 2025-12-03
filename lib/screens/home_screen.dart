@@ -4,6 +4,9 @@ import '../providers/subscription_provider.dart';
 import 'cards_list_screen.dart';
 import 'subscription_screen.dart';
 import 'privacy_policy_screen.dart';
+import 'resume_list_screen.dart';
+import 'credentials_screen.dart';
+import 'portfolio_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -73,7 +76,7 @@ class HomeScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(isLandscape ? 20 : 30),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.3),
+                              color: Colors.black.withValues(alpha: 0.3),
                               blurRadius: 20,
                               offset: const Offset(0, 10),
                             ),
@@ -131,7 +134,7 @@ class HomeScreen extends StatelessWidget {
                         'Stack Your Professional Life',
                         style: TextStyle(
                           fontSize: isLandscape ? 13 : 16,
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -159,35 +162,30 @@ class HomeScreen extends StatelessWidget {
 
                       _FeatureButton(
                         icon: Icons.description,
-                        title: 'AI Resume Builder',
-                        subtitle: 'Create professional resumes',
+                        title: 'My Resumes',
+                        subtitle: 'View and create resumes',
                         gradient: [Colors.purple.shade600, Colors.purple.shade800],
                         isPro: true,
                         isCompact: isLandscape,
                         onTap: () {
-                          final provider = Provider.of<SubscriptionProvider>(
-                            context,
-                            listen: false,
-                          );
-                          
-                          // Check access (synchronous)
+                          final provider = Provider.of<SubscriptionProvider>(context, listen: false);
                           final hasAccess = provider.canAccessFeature('ai_resume');
-                          
-                          if (hasAccess) {
+
+                          if (!hasAccess) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('AI Resume Builder - Coming Soon!'),
-                              ),
+                              const SnackBar(content: Text('Upgrade to Business to access Resume features')),
                             );
-                          } else {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const SubscriptionScreen(),
-                              ),
-                            );
+                            return;
                           }
+
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ResumeListScreen(),
+                            ),
+                          );
                         },
+
                       ),
 
                       SizedBox(height: isLandscape ? 8 : 16),
@@ -201,10 +199,10 @@ class HomeScreen extends StatelessWidget {
                         comingSoon: true,
                         isCompact: isLandscape,
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Credentials Manager - Coming Soon!'),
-                              duration: Duration(seconds: 2),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const CredentialsScreen(),
                             ),
                           );
                         },
@@ -221,10 +219,10 @@ class HomeScreen extends StatelessWidget {
                         comingSoon: true,
                         isCompact: isLandscape,
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Portfolio Builder - Coming Soon!'),
-                              duration: Duration(seconds: 2),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const PortfolioScreen(),
                             ),
                           );
                         },
@@ -473,7 +471,7 @@ class _FeatureButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: gradient[0].withOpacity(0.3),
+            color: gradient[0].withValues(alpha: 0.3),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -500,7 +498,7 @@ class _FeatureButton extends StatelessWidget {
                   Container(
                     padding: EdgeInsets.all(isCompact ? 8 : 12),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
@@ -555,7 +553,7 @@ class _FeatureButton extends StatelessWidget {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.3),
+                                  color: Colors.white.withValues(alpha: 0.3),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
@@ -576,7 +574,7 @@ class _FeatureButton extends StatelessWidget {
                             subtitle,
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                             ),
                           ),
                         ],
@@ -585,7 +583,7 @@ class _FeatureButton extends StatelessWidget {
                   ),
                   Icon(
                     Icons.arrow_forward_ios,
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                     size: isCompact ? 16 : 20,
                   ),
                 ],

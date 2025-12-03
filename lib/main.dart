@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/business_card_provider.dart';
 import 'providers/subscription_provider.dart';
+import 'providers/resume_provider.dart';
+import 'providers/credential_provider.dart';
 import 'screens/home_screen.dart';
+import 'providers/portfolio_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,6 +24,15 @@ class ProStackApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (context) => SubscriptionProvider()..initialize(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => PortfolioProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => ResumeProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => CredentialProvider(),
         ),
       ],
       child: MaterialApp(

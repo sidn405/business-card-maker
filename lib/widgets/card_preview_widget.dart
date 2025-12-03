@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../models/business_card_enhanced.dart';
+import '../models/business_card.dart';
 import '../models/card_template.dart';
 
 class CardPreviewWidget extends StatelessWidget {
@@ -17,7 +17,10 @@ class CardPreviewWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final template = CardTemplate.getTemplate(card.templateType);
+    final template = CardTemplate.getTemplate(
+      card.template ?? CardTemplateType.classic
+    );
+    
     final cardWidth = width ?? MediaQuery.of(context).size.width * 0.9;
     final cardHeight = height ?? cardWidth * 0.6;
 
@@ -29,7 +32,7 @@ class CardPreviewWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -69,7 +72,7 @@ class CardPreviewWidget extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 4,
                       ),
                     ],
@@ -109,7 +112,7 @@ class CardPreviewWidget extends StatelessWidget {
                       card.title,
                       style: TextStyle(
                         fontSize: 14,
-                        color: template.textColor.withOpacity(0.8),
+                        color: template.textColor.withValues(alpha: 0.8),
                       ),
                     ),
                   ],
@@ -121,7 +124,7 @@ class CardPreviewWidget extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: template.textColor.withOpacity(0.9),
+                        color: template.textColor.withValues(alpha: 0.9),
                       ),
                     ),
                   ],
@@ -179,7 +182,7 @@ class _ContactRow extends StatelessWidget {
           Icon(
             icon,
             size: 14,
-            color: color.withOpacity(0.7),
+            color: color.withValues(alpha: 0.7),
           ),
           const SizedBox(width: 6),
           Expanded(
@@ -187,7 +190,7 @@ class _ContactRow extends StatelessWidget {
               text,
               style: TextStyle(
                 fontSize: 12,
-                color: color.withOpacity(0.8),
+                color: color.withValues(alpha: 0.8),
               ),
               overflow: TextOverflow.ellipsis,
             ),

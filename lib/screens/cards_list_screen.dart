@@ -9,6 +9,8 @@ import 'camera_scan_screen.dart';
 import 'card_edit_screen.dart';
 import 'card_detail_screen.dart';
 import 'subscription_screen.dart';
+import 'premium_features_screen.dart';
+import '../models/subscription.dart';
 
 class CardsListScreen extends StatefulWidget {
   const CardsListScreen({Key? key}) : super(key: key);
@@ -176,32 +178,92 @@ class _CardsListScreenState extends State<CardsListScreen> {
           builder: (context, subProvider, child) {
             return Consumer<BusinessCardProvider>(
               builder: (context, cardProvider, child) {
+                final tier = subProvider.currentSubscription.tier;
                 final maxCards = subProvider.currentSubscription.maxCards;
                 final currentCount = cardProvider.cards.length;
                 
-                // Show card count for free users
-                if (maxCards != -1) {
-                  return Column(
-                    children: [
-                      const Text('My Business Cards'),
-                      Text(
-                        '$currentCount of $maxCards cards',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: currentCount >= maxCards 
-                            ? Colors.red 
-                            : Colors.grey.shade600,
+                return Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('My Business Cards'),
+                          if (maxCards != -1)
+                            Text(
+                              '$currentCount of $maxCards cards',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: currentCount >= maxCards 
+                                  ? Colors.red 
+                                  : Colors.grey.shade600,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    // Premium badge
+                    if (tier != SubscriptionTier.free)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: tier == SubscriptionTier.business
+                                ? [Colors.purple.shade700, Colors.purple.shade900]
+                                : [Colors.amber.shade600, Colors.amber.shade800],
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.workspace_premium,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              tier == SubscriptionTier.business ? 'BUSINESS' : 'PREMIUM',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  );
-                }
-                return const Text('My Business Cards');
+                  ],
+                );
               },
             );
           },
         ),
         actions: [
+          // Add menu button for premium features
+          Consumer<SubscriptionProvider>(
+            builder: (context, subProvider, child) {
+              if (subProvider.currentSubscription.tier != SubscriptionTier.free) {
+                return IconButton(
+                  icon: const Icon(Icons.auto_awesome),
+                  tooltip: 'Premium Features',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const PremiumFeaturesScreen(),
+                      ),
+                    );
+                  },
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.search),
             onPressed: () {

@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/business_card.dart';
 import '../providers/business_card_provider.dart';
 import 'card_edit_screen.dart';
+import 'card_export_screen.dart';
 
 class CardDetailScreen extends StatelessWidget {
   final BusinessCard card;
@@ -19,6 +20,18 @@ class CardDetailScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Card Details'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.download),
+            tooltip: 'Export Card',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CardExportScreen(card: card),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () {

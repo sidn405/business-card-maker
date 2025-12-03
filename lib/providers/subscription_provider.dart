@@ -8,7 +8,7 @@ import 'dart:io';
 import '../models/subscription.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:device_info_plus/device_info_plus.dart';
-import '../config.dart';
+//import '../config.dart';
 
 class SubscriptionProvider extends ChangeNotifier {
   final InAppPurchase _iap = InAppPurchase.instance;
@@ -242,19 +242,29 @@ class SubscriptionProvider extends ChangeNotifier {
 
   Future<void> _verifyAndDeliverProduct(PurchaseDetails purchase) async {
     debugPrint('🔵 [Verify] Starting purchase verification...');
-    
+
     try {
       // Get purchase token
       String? purchaseToken;
-      
+
       if (Platform.isAndroid) {
         purchaseToken = purchase.verificationData.serverVerificationData;
-        debugPrint('🔵 [Verify] Android purchase token: ${purchaseToken?.substring(0, 20)}...');
       } else if (Platform.isIOS) {
         purchaseToken = purchase.verificationData.serverVerificationData;
-        debugPrint('🔵 [Verify] iOS purchase token: ${purchaseToken?.substring(0, 20)}...');
       }
-      
+
+      // Safe preview for logs (null + short string safe)
+      final previewToken = (purchaseToken ?? '');
+      final preview = previewToken.length > 20
+          ? previewToken.substring(0, 20)
+          : previewToken;
+
+      if (Platform.isAndroid) {
+        debugPrint('🔵 [Verify] Android purchase token: $preview...');
+      } else if (Platform.isIOS) {
+        debugPrint('🔵 [Verify] iOS purchase token: $preview...');
+      }
+
       if (purchaseToken == null || purchaseToken.isEmpty) {
         debugPrint('🔴 [Verify] No purchase token available!');
         _lastError = 'No purchase token';
@@ -262,37 +272,34 @@ class SubscriptionProvider extends ChangeNotifier {
         notifyListeners();
         return;
       }
-      
+
       debugPrint('🔵 [Verify] Verifying with backend: $_backendUrl');
-      
-      // Get device ID
-      final deviceId = await _getDeviceId();
-      
+
       // Send purchase data to backend for verification
-      // Backend uses PROSTACK_API_KEY for authentication
-      final response = await http.post(
-        Uri.parse('$_backendUrl/api/v1/subscriptions/verify'),
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': _prostackApiKey,  // ProStack API key for backend auth
-        },
-        body: jsonEncode({
-          'product_id': purchase.productID,
-          'purchase_token': purchaseToken,
-          'platform': Platform.isAndroid ? 'android' : 'ios',
-          'device_id': deviceId,  // Send device ID for license tracking
-        }),
-      ).timeout(const Duration(seconds: 10));
-      
+      final response = await http
+          .post(
+            Uri.parse('$_backendUrl/api/v1/subscriptions/verify'),
+            headers: {
+              'Content-Type': 'application/json',
+              'X-API-Key': _prostackApiKey, // ProStack API key for backend auth
+            },
+            body: jsonEncode({
+              'product_id': purchase.productID,
+              'purchase_token': purchaseToken,
+              'platform': Platform.isAndroid ? 'android' : 'ios',
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+
       debugPrint('🔵 [Verify] Backend response status: ${response.statusCode}');
       debugPrint('🔵 [Verify] Backend response body: ${response.body}');
-      
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        
+
         if (data['is_valid'] == true) {
           debugPrint('🟢 [Verify] Purchase verified successfully!');
-          
+
           // Parse subscription tier
           SubscriptionTier tier = SubscriptionTier.free;
           if (data['subscription_tier'] == 'premium') {
@@ -300,33 +307,33 @@ class SubscriptionProvider extends ChangeNotifier {
           } else if (data['subscription_tier'] == 'business') {
             tier = SubscriptionTier.business;
           }
-          
+
           debugPrint('🔵 [Verify] Subscription tier: $tier');
-          
+
           // Parse expiry date
           DateTime? expiryDate;
           if (data['expiry_date'] != null) {
             expiryDate = DateTime.parse(data['expiry_date']);
             debugPrint('🔵 [Verify] Expiry date: $expiryDate');
           }
-          
+
           // Update subscription
           _currentSubscription = Subscription(
             tier: tier,
             expiryDate: expiryDate,
             isActive: true,
           );
-          
+
           // Save to SharedPreferences
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('purchase_token', purchaseToken);
           await prefs.setString('last_product_id', purchase.productID);
           await _saveSubscription();
-          
+
           _isLoading = false;
           _lastError = '';
           notifyListeners();
-          
+
           debugPrint('🟢 [Verify] Subscription activated: ${tier.toString()}');
         } else {
           debugPrint('🔴 [Verify] Purchase verification failed: ${data['message']}');
@@ -347,6 +354,7 @@ class SubscriptionProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
 
   Future<void> purchaseSubscription(String productId) async {
     debugPrint('══════════════════════════════════════════════');
@@ -434,19 +442,31 @@ class SubscriptionProvider extends ChangeNotifier {
 
   // Synchronous check for UI
   bool canAccessFeature(String feature) {
+    final sub = _currentSubscription;
+
+    // A subscription must be active at minimum
+    if (!sub.isActive) return false;
+
     switch (feature) {
-      case 'custom_templates':
-        return _currentSubscription.hasCustomTemplates;
-      case 'color_themes':
-        return _currentSubscription.hasColorThemes;
-      case 'company_logos':
-        return _currentSubscription.hasCompanyLogos;
+      // --- BUSINESS-ONLY FEATURES ---
       case 'ai_resume':
-        return _currentSubscription.hasAIResume;
+      case 'credentials':
+      case 'portfolio':
+        return sub.tier == SubscriptionTier.business;
+
+      // --- PREMIUM or BUSINESS (example) ---
+      case 'custom_templates':
+      case 'color_themes':
+      case 'company_logos':
       case 'qr_codes':
-        return _currentSubscription.hasQRCodes;
+        return sub.tier == SubscriptionTier.premium ||
+              sub.tier == SubscriptionTier.business;
+
+      // --- BUSINESS-ONLY big features ---
       case 'bulk_export':
-        return _currentSubscription.hasBulkExport;
+        return sub.tier == SubscriptionTier.business;
+
+
       default:
         return false;
     }

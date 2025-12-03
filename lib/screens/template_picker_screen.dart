@@ -92,7 +92,7 @@ class _TemplateCard extends StatelessWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -138,7 +138,7 @@ class _TemplateCard extends StatelessWidget {
                               height: 12,
                               width: 80,
                               decoration: BoxDecoration(
-                                color: template.textColor.withOpacity(0.8),
+                                color: template.textColor.withValues(alpha: 0.8),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             ),
@@ -147,7 +147,7 @@ class _TemplateCard extends StatelessWidget {
                               height: 8,
                               width: 100,
                               decoration: BoxDecoration(
-                                color: template.textColor.withOpacity(0.5),
+                                color: template.textColor.withValues(alpha: 0.5),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             ),
@@ -156,7 +156,7 @@ class _TemplateCard extends StatelessWidget {
                               height: 6,
                               width: 90,
                               decoration: BoxDecoration(
-                                color: template.textColor.withOpacity(0.4),
+                                color: template.textColor.withValues(alpha: 0.4),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             ),
@@ -165,7 +165,7 @@ class _TemplateCard extends StatelessWidget {
                               height: 6,
                               width: 70,
                               decoration: BoxDecoration(
-                                color: template.textColor.withOpacity(0.4),
+                                color: template.textColor.withValues(alpha: 0.4),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             ),
@@ -180,7 +180,7 @@ class _TemplateCard extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: Padding(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(8),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -226,7 +226,7 @@ class _TemplateCard extends StatelessWidget {
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.6),
+                color: Colors.black.withValues(alpha: 0.6),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(

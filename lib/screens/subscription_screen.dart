@@ -160,7 +160,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                 boxShadow: !_isYearly
                                     ? [
                                         BoxShadow(
-                                          color: Colors.black.withOpacity(0.1),
+                                          color: Colors.black.withValues(alpha: 0.1),
                                           blurRadius: 8,
                                           offset: const Offset(0, 2),
                                         )
@@ -186,7 +186,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                 boxShadow: _isYearly
                                     ? [
                                         BoxShadow(
-                                          color: Colors.black.withOpacity(0.1),
+                                          color: Colors.black.withValues(alpha: 0.1),
                                           blurRadius: 8,
                                           offset: const Offset(0, 2),
                                         )

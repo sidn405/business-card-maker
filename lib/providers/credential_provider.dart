@@ -1,255 +1,95 @@
-import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as path;
-import 'package:uuid/uuid.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../models/credential.dart';
 
-/// Credential Types
-enum CredentialType {
-  certificate,
-  degree,
-  license,
-  training,
-  award,
-  other,
-}
-
-/// Credential Model - Stored Locally Only
-class Credential {
-  final String id;
-  final String title;
-  final String issuer;
-  final DateTime issueDate;
-  final DateTime? expirationDate;
-  final CredentialType type;
-  final String? description;
-  final String? filePath; // Path to PDF/image on device
-  final String? credentialNumber;
-  final List<String> tags;
-  final DateTime createdAt;
-
-  Credential({
-    String? id,
-    required this.title,
-    required this.issuer,
-    required this.issueDate,
-    this.expirationDate,
-    required this.type,
-    this.description,
-    this.filePath,
-    this.credentialNumber,
-    List<String>? tags,
-    DateTime? createdAt,
-  })  : id = id ?? const Uuid().v4(),
-        tags = tags ?? [],
-        createdAt = createdAt ?? DateTime.now();
-
-  bool get isExpired {
-    if (expirationDate == null) return false;
-    return DateTime.now().isAfter(expirationDate!);
-  }
-
-  bool get expiringWithin30Days {
-    if (expirationDate == null) return false;
-    final daysUntilExpiration = expirationDate!.difference(DateTime.now()).inDays;
-    return daysUntilExpiration > 0 && daysUntilExpiration <= 30;
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'title': title,
-      'issuer': issuer,
-      'issueDate': issueDate.toIso8601String(),
-      'expirationDate': expirationDate?.toIso8601String(),
-      'type': type.toString(),
-      'description': description,
-      'filePath': filePath,
-      'credentialNumber': credentialNumber,
-      'tags': tags,
-      'createdAt': createdAt.toIso8601String(),
-    };
-  }
-
-  factory Credential.fromJson(Map<String, dynamic> json) {
-    return Credential(
-      id: json['id'],
-      title: json['title'],
-      issuer: json['issuer'],
-      issueDate: DateTime.parse(json['issueDate']),
-      expirationDate: json['expirationDate'] != null
-          ? DateTime.parse(json['expirationDate'])
-          : null,
-      type: CredentialType.values.firstWhere(
-        (e) => e.toString() == json['type'],
-        orElse: () => CredentialType.other,
-      ),
-      description: json['description'],
-      filePath: json['filePath'],
-      credentialNumber: json['credentialNumber'],
-      tags: List<String>.from(json['tags'] ?? []),
-      createdAt: DateTime.parse(json['createdAt']),
-    );
-  }
-
-  Credential copyWith({
-    String? title,
-    String? issuer,
-    DateTime? issueDate,
-    DateTime? expirationDate,
-    CredentialType? type,
-    String? description,
-    String? filePath,
-    String? credentialNumber,
-    List<String>? tags,
-  }) {
-    return Credential(
-      id: id,
-      title: title ?? this.title,
-      issuer: issuer ?? this.issuer,
-      issueDate: issueDate ?? this.issueDate,
-      expirationDate: expirationDate ?? this.expirationDate,
-      type: type ?? this.type,
-      description: description ?? this.description,
-      filePath: filePath ?? this.filePath,
-      credentialNumber: credentialNumber ?? this.credentialNumber,
-      tags: tags ?? this.tags,
-      createdAt: createdAt,
-    );
-  }
-}
-
-/// LOCAL-ONLY Credential Storage Provider
-/// NO CLOUD SYNC - Everything stored on device
+/// Credential Provider - Manages credentials storage and operations
 class CredentialProvider extends ChangeNotifier {
   List<Credential> _credentials = [];
-  bool _isLoading = false;
-  String? _error;
+  bool _isLoaded = false;
 
   List<Credential> get credentials => List.unmodifiable(_credentials);
-  bool get isLoading => _isLoading;
-  String? get error => _error;
+  bool get isLoaded => _isLoaded;
 
-  // Get app's document directory for local storage
-  Future<Directory> get _credentialsDir async {
-    final appDir = await getApplicationDocumentsDirectory();
-    final credDir = Directory(path.join(appDir.path, 'credentials'));
-    if (!await credDir.exists()) {
-      await credDir.create(recursive: true);
-    }
-    return credDir;
-  }
+  static const String _storageKey = 'credentials';
 
-  // Get metadata file path
-  Future<File> get _metadataFile async {
-    final dir = await _credentialsDir;
-    return File(path.join(dir.path, 'credentials.json'));
-  }
-
-  /// Initialize - Load from local storage
-  Future<void> initialize() async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
+  /// Load credentials from SharedPreferences
+  Future<void> loadCredentials() async {
     try {
-      await _loadCredentials();
-      _isLoading = false;
-      notifyListeners();
-    } catch (e) {
-      _error = e.toString();
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
+      print('🔵 DEBUG CREDENTIAL PROVIDER: Loading credentials...');
+      final prefs = await SharedPreferences.getInstance();
+      final String? credentialsJson = prefs.getString(_storageKey);
 
-  /// Load credentials from local JSON file
-  Future<void> _loadCredentials() async {
-    try {
-      final file = await _metadataFile;
-      
-      if (!await file.exists()) {
+      if (credentialsJson != null) {
+        final List<dynamic> jsonList = json.decode(credentialsJson);
+        _credentials = jsonList
+            .map((json) => Credential.fromJson(json as Map<String, dynamic>))
+            .toList();
+        
+        print('🟢 DEBUG CREDENTIAL PROVIDER: Loaded ${_credentials.length} credentials');
+      } else {
         _credentials = [];
-        return;
+        print('🟢 DEBUG CREDENTIAL PROVIDER: No saved credentials found');
       }
 
-      final contents = await file.readAsString();
-      final List<dynamic> jsonList = json.decode(contents);
-      
-      _credentials = jsonList
-          .map((json) => Credential.fromJson(json))
-          .toList();
-      
-      // Sort by creation date (newest first)
-      _credentials.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      
-    } catch (e) {
-      print('Error loading credentials: $e');
+      _isLoaded = true;
+      notifyListeners();
+    } catch (e, stackTrace) {
+      print('🔴 DEBUG CREDENTIAL PROVIDER: Error loading credentials: $e');
+      print('🔴 DEBUG CREDENTIAL PROVIDER: Stack trace: $stackTrace');
       _credentials = [];
+      _isLoaded = true;
+      notifyListeners();
     }
   }
 
-  /// Save credentials to local JSON file
+  /// Save credentials to SharedPreferences
   Future<void> _saveCredentials() async {
     try {
-      final file = await _metadataFile;
-      final jsonList = _credentials.map((c) => c.toJson()).toList();
-      await file.writeAsString(json.encode(jsonList));
-    } catch (e) {
-      print('Error saving credentials: $e');
+      print('🔵 DEBUG CREDENTIAL PROVIDER: Saving ${_credentials.length} credentials...');
+      final prefs = await SharedPreferences.getInstance();
+      final List<Map<String, dynamic>> jsonList =
+          _credentials.map((credential) => credential.toJson()).toList();
+      final String credentialsJson = json.encode(jsonList);
+      
+      await prefs.setString(_storageKey, credentialsJson);
+      print('🟢 DEBUG CREDENTIAL PROVIDER: ✓ Credentials saved successfully');
+    } catch (e, stackTrace) {
+      print('🔴 DEBUG CREDENTIAL PROVIDER: Error saving credentials: $e');
+      print('🔴 DEBUG CREDENTIAL PROVIDER: Stack trace: $stackTrace');
       throw Exception('Failed to save credentials: $e');
     }
   }
 
-  /// Add new credential with optional file
-  Future<void> addCredential(
-    Credential credential, {
-    File? file,
-  }) async {
+  /// Add new credential
+  Future<void> addCredential(Credential credential) async {
     try {
-      String? savedFilePath;
-
-      // If file is provided, save it locally
-      if (file != null) {
-        savedFilePath = await _saveCredentialFile(credential.id, file);
-      }
-
-      // Create credential with file path
-      final newCredential = credential.copyWith(
-        filePath: savedFilePath ?? credential.filePath,
-      );
-
-      _credentials.insert(0, newCredential);
+      print('🔵 DEBUG CREDENTIAL PROVIDER: Adding credential: ${credential.name}');
+      print('🔵 DEBUG CREDENTIAL PROVIDER: ID: ${credential.id}');
+      print('🔵 DEBUG CREDENTIAL PROVIDER: Type: ${credential.type.displayName}');
+      
+      _credentials.insert(0, credential); // Add at beginning
       await _saveCredentials();
       notifyListeners();
       
-    } catch (e) {
+      print('🟢 DEBUG CREDENTIAL PROVIDER: ✓ Credential added successfully');
+    } catch (e, stackTrace) {
+      print('🔴 DEBUG CREDENTIAL PROVIDER: Error adding credential: $e');
+      print('🔴 DEBUG CREDENTIAL PROVIDER: Stack trace: $stackTrace');
       throw Exception('Failed to add credential: $e');
-    }
-  }
-
-  /// Save credential file (PDF/image) to local storage
-  Future<String> _saveCredentialFile(String credentialId, File file) async {
-    try {
-      final dir = await _credentialsDir;
-      final extension = path.extension(file.path);
-      final newPath = path.join(dir.path, '$credentialId$extension');
-      
-      await file.copy(newPath);
-      return newPath;
-      
-    } catch (e) {
-      throw Exception('Failed to save credential file: $e');
     }
   }
 
   /// Update existing credential
   Future<void> updateCredential(Credential credential) async {
     try {
+      print('🔵 DEBUG CREDENTIAL PROVIDER: Updating credential: ${credential.name}');
+      print('🔵 DEBUG CREDENTIAL PROVIDER: ID: ${credential.id}');
+      
       final index = _credentials.indexWhere((c) => c.id == credential.id);
       
       if (index == -1) {
+        print('🔴 DEBUG CREDENTIAL PROVIDER: Credential not found with ID: ${credential.id}');
         throw Exception('Credential not found');
       }
 
@@ -257,44 +97,45 @@ class CredentialProvider extends ChangeNotifier {
       await _saveCredentials();
       notifyListeners();
       
-    } catch (e) {
+      print('🟢 DEBUG CREDENTIAL PROVIDER: ✓ Credential updated successfully');
+    } catch (e, stackTrace) {
+      print('🔴 DEBUG CREDENTIAL PROVIDER: Error updating credential: $e');
+      print('🔴 DEBUG CREDENTIAL PROVIDER: Stack trace: $stackTrace');
       throw Exception('Failed to update credential: $e');
     }
   }
 
-  /// Delete credential and its file
+  /// Delete credential
   Future<void> deleteCredential(String id) async {
     try {
-      final credential = _credentials.firstWhere((c) => c.id == id);
+      print('🔵 DEBUG CREDENTIAL PROVIDER: Deleting credential with ID: $id');
       
-      // Delete file if exists
-      if (credential.filePath != null) {
-        final file = File(credential.filePath!);
-        if (await file.exists()) {
-          await file.delete();
-        }
-      }
-
+      final credential = _credentials.firstWhere(
+        (c) => c.id == id,
+        orElse: () => throw Exception('Credential not found'),
+      );
+      
+      print('🔵 DEBUG CREDENTIAL PROVIDER: Found credential: ${credential.name}');
+      
       _credentials.removeWhere((c) => c.id == id);
       await _saveCredentials();
       notifyListeners();
       
-    } catch (e) {
+      print('🟢 DEBUG CREDENTIAL PROVIDER: ✓ Credential deleted successfully');
+    } catch (e, stackTrace) {
+      print('🔴 DEBUG CREDENTIAL PROVIDER: Error deleting credential: $e');
+      print('🔴 DEBUG CREDENTIAL PROVIDER: Stack trace: $stackTrace');
       throw Exception('Failed to delete credential: $e');
     }
   }
 
-  /// Search credentials
-  List<Credential> searchCredentials(String query) {
-    if (query.isEmpty) return credentials;
-
-    final lowerQuery = query.toLowerCase();
-    return _credentials.where((c) {
-      return c.title.toLowerCase().contains(lowerQuery) ||
-          c.issuer.toLowerCase().contains(lowerQuery) ||
-          (c.description?.toLowerCase().contains(lowerQuery) ?? false) ||
-          c.tags.any((tag) => tag.toLowerCase().contains(lowerQuery));
-    }).toList();
+  /// Get credential by ID
+  Credential? getCredentialById(String id) {
+    try {
+      return _credentials.firstWhere((c) => c.id == id);
+    } catch (e) {
+      return null;
+    }
   }
 
   /// Get credentials by type
@@ -304,99 +145,33 @@ class CredentialProvider extends ChangeNotifier {
 
   /// Get expired credentials
   List<Credential> get expiredCredentials {
-    return _credentials.where((c) => c.isExpired).toList();
+    return _credentials.where((c) => c.isExpired()).toList();
   }
 
-  /// Get credentials expiring soon
-  List<Credential> get expiringSoonCredentials {
-    return _credentials.where((c) => c.expiringWithin30Days).toList();
+  /// Search credentials
+  List<Credential> searchCredentials(String query) {
+    if (query.isEmpty) return credentials;
+
+    final lowerQuery = query.toLowerCase();
+    return _credentials.where((c) {
+      return c.name.toLowerCase().contains(lowerQuery) ||
+          c.issuer.toLowerCase().contains(lowerQuery) ||
+          (c.description?.toLowerCase().contains(lowerQuery) ?? false) ||
+          (c.credentialId?.toLowerCase().contains(lowerQuery) ?? false);
+    }).toList();
   }
 
-  /// Get credentials by tag
-  List<Credential> getCredentialsByTag(String tag) {
-    return _credentials.where((c) => c.tags.contains(tag)).toList();
-  }
-
-  /// Get all unique tags
-  List<String> get allTags {
-    final tags = <String>{};
-    for (var credential in _credentials) {
-      tags.addAll(credential.tags);
-    }
-    return tags.toList()..sort();
-  }
-
-  /// Get storage stats
-  Future<Map<String, dynamic>> getStorageStats() async {
-    final dir = await _credentialsDir;
-    int totalSize = 0;
-    int fileCount = 0;
-
-    if (await dir.exists()) {
-      final files = dir.listSync();
-      for (var file in files) {
-        if (file is File) {
-          totalSize += await file.length();
-          fileCount++;
-        }
-      }
-    }
-
-    return {
-      'total_credentials': _credentials.length,
-      'total_files': fileCount,
-      'total_size_bytes': totalSize,
-      'total_size_mb': (totalSize / (1024 * 1024)).toStringAsFixed(2),
-      'expired_count': expiredCredentials.length,
-      'expiring_soon_count': expiringSoonCredentials.length,
-    };
-  }
-
-  /// Export all credentials (for backup)
-  Future<File> exportCredentials() async {
-    final tempDir = await getTemporaryDirectory();
-    final exportFile = File(path.join(
-      tempDir.path,
-      'prostack_credentials_backup_${DateTime.now().millisecondsSinceEpoch}.json',
-    ));
-
-    final exportData = {
-      'version': '1.0',
-      'exported_at': DateTime.now().toIso8601String(),
-      'credentials': _credentials.map((c) => c.toJson()).toList(),
-    };
-
-    await exportFile.writeAsString(json.encode(exportData));
-    return exportFile;
-  }
-
-  /// Import credentials from backup
-  Future<void> importCredentials(File backupFile) async {
+  /// Clear all credentials (for testing or reset)
+  Future<void> clearAll() async {
     try {
-      final contents = await backupFile.readAsString();
-      final data = json.decode(contents);
-      
-      if (data['version'] != '1.0') {
-        throw Exception('Unsupported backup version');
-      }
-
-      final List<dynamic> credentialsList = data['credentials'];
-      final imported = credentialsList
-          .map((json) => Credential.fromJson(json))
-          .toList();
-
-      // Add imported credentials (avoiding duplicates)
-      for (var credential in imported) {
-        if (!_credentials.any((c) => c.id == credential.id)) {
-          _credentials.add(credential);
-        }
-      }
-
+      print('🔵 DEBUG CREDENTIAL PROVIDER: Clearing all credentials');
+      _credentials.clear();
       await _saveCredentials();
       notifyListeners();
-      
+      print('🟢 DEBUG CREDENTIAL PROVIDER: ✓ All credentials cleared');
     } catch (e) {
-      throw Exception('Failed to import credentials: $e');
+      print('🔴 DEBUG CREDENTIAL PROVIDER: Error clearing credentials: $e');
+      throw Exception('Failed to clear credentials: $e');
     }
   }
 }
