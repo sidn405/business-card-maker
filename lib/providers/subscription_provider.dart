@@ -8,7 +8,7 @@ import 'dart:io';
 import '../models/subscription.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:device_info_plus/device_info_plus.dart';
-//import '../config.dart';
+
 
 class SubscriptionProvider extends ChangeNotifier {
   final InAppPurchase _iap = InAppPurchase.instance;
@@ -219,9 +219,16 @@ class SubscriptionProvider extends ChangeNotifier {
         _verifyAndDeliverProduct(purchase);
       } else if (purchase.status == PurchaseStatus.error) {
         debugPrint('🔴 [IAP] Purchase error: ${purchase.error}');
-        _lastError = 'Purchase failed: ${purchase.error?.message ?? "Unknown error"}';
-        _isLoading = false;
-        notifyListeners();
+        
+        // Try backend verification even on client error!
+        if (purchase.verificationData.serverVerificationData.isNotEmpty) {
+          debugPrint('🟡 [IAP] Client failed, attempting backend verification...');
+          _verifyAndDeliverProduct(purchase);  // Your existing method!
+        } else {
+          _lastError = 'Purchase failed...';
+          _isLoading = false;
+          notifyListeners();
+        }
       } else if (purchase.status == PurchaseStatus.pending) {
         debugPrint('🟡 [IAP] Purchase pending...');
         _lastError = 'Purchase pending...';

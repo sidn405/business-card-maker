@@ -13,7 +13,7 @@ class SubscriptionScreen extends StatefulWidget {
 class _SubscriptionScreenState extends State<SubscriptionScreen> {
   bool _isYearly = true;
   
-
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
