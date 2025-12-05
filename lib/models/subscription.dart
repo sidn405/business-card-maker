@@ -43,6 +43,14 @@ class Subscription {
     return tier == SubscriptionTier.business;
   }
 
+  bool get hasCredentials {
+    return tier == SubscriptionTier.business;
+  }
+
+  bool get hasPortfolio {
+    return tier == SubscriptionTier.business;
+  }
+
   bool get hasQRCodes {
     return tier != SubscriptionTier.free;
   }

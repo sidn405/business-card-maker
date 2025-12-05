@@ -40,8 +40,8 @@ class DatabaseService {
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL,
         template TEXT NOT NULL,
-        colorTheme TEXT NOT NULL,
-        logoPath TEXT NOT NULL
+        colorTheme TEXT,
+        logoPath TEXT
       )
     ''');
   }

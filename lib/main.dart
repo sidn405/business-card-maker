@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/business_card_provider.dart';
 import 'providers/subscription_provider.dart';
+import 'providers/portfolio_provider.dart';
 import 'providers/resume_provider.dart';
 import 'providers/credential_provider.dart';
 import 'screens/home_screen.dart';
-import 'providers/portfolio_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

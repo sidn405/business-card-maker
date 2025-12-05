@@ -253,10 +253,11 @@ class BusinessCard {
       'imagePath': imagePath,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
-      'template': template?.toString(),
-      'colorTheme': colorTheme,  // ADD THIS
+      // 👇 fallback to classic if template is null
+      'template': (template ?? CardTemplateType.classic).toString(),
+      'colorTheme': colorTheme,
       'logoPath': logoPath,
-    };
+      };
   }
 
   factory BusinessCard.fromJson(Map<String, dynamic> json) {
@@ -273,13 +274,11 @@ class BusinessCard {
       imagePath: json['imagePath'],
       createdAt: DateTime.parse(json['createdAt']),
       updatedAt: DateTime.parse(json['updatedAt']),
-      template: json['template'] != null
-          ? CardTemplateType.values.firstWhere(
-              (e) => e.toString() == json['template'],
-              orElse: () => CardTemplateType.classic,
-            )
-          : null,
-      colorTheme: json['colorTheme'],  // ADD THIS
+      template: CardTemplateType.values.firstWhere(
+        (e) => e.toString() == (json['template'] ?? ''),
+        orElse: () => CardTemplateType.classic,
+      ),
+      colorTheme: json['colorTheme'],
       logoPath: json['logoPath'],
     );
   }

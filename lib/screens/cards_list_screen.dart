@@ -96,7 +96,12 @@ class _CardsListScreenState extends State<CardsListScreen> {
           children: [
             Icon(Icons.lock, color: Colors.amber.shade700),
             const SizedBox(width: 8),
-            const Text('Card Limit Reached'),
+            Expanded(  // ✅ Add this
+              child: const Text(
+                'Card Limit Reached',
+                overflow: TextOverflow.ellipsis,  // ✅ Add this
+              ),
+            ),
           ],
         ),
         content: Column(
@@ -178,71 +183,44 @@ class _CardsListScreenState extends State<CardsListScreen> {
           builder: (context, subProvider, child) {
             return Consumer<BusinessCardProvider>(
               builder: (context, cardProvider, child) {
-                final tier = subProvider.currentSubscription.tier;
                 final maxCards = subProvider.currentSubscription.maxCards;
                 final currentCount = cardProvider.cards.length;
-                
+
                 return Row(
                   children: [
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text('My Business Cards'),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: const Text(
+                              'My Business Cards',
+                              maxLines: 1, // keep it on one line, but fully visible
+                            ),
+                          ),
                           if (maxCards != -1)
                             Text(
                               '$currentCount of $maxCards cards',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: currentCount >= maxCards 
-                                  ? Colors.red 
-                                  : Colors.grey.shade600,
+                                color: currentCount >= maxCards
+                                    ? Colors.red
+                                    : Colors.grey.shade600,
                               ),
                             ),
                         ],
                       ),
                     ),
-                    // Premium badge
-                    if (tier != SubscriptionTier.free)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: tier == SubscriptionTier.business
-                                ? [Colors.purple.shade700, Colors.purple.shade900]
-                                : [Colors.amber.shade600, Colors.amber.shade800],
-                          ),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.workspace_premium,
-                              size: 16,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              tier == SubscriptionTier.business ? 'BUSINESS' : 'PREMIUM',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                   ],
                 );
               },
             );
           },
         ),
+
         actions: [
           // Add menu button for premium features
           Consumer<SubscriptionProvider>(

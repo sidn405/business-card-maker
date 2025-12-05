@@ -1,3 +1,5 @@
+import 'package:business_card_maker/screens/credentials_list_screen.dart';
+import 'package:business_card_maker/screens/portfolio_list_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/subscription_provider.dart';
@@ -5,8 +7,7 @@ import 'cards_list_screen.dart';
 import 'subscription_screen.dart';
 import 'privacy_policy_screen.dart';
 import 'resume_list_screen.dart';
-import 'credentials_screen.dart';
-import 'portfolio_screen.dart';
+
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -24,8 +25,8 @@ class HomeScreen extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              const Color(0xFF1976D2),
-              const Color(0xFF1565C0),
+              const Color.fromARGB(255, 7, 50, 94),
+              const Color.fromARGB(255, 19, 80, 150),
               const Color(0xFF0D47A1),
             ],
           ),
@@ -67,54 +68,6 @@ class HomeScreen extends StatelessWidget {
                     children: [
                       SizedBox(height: isLandscape ? 10 : 20),
                       
-                      // App Icon/Logo (smaller in landscape)
-                      Container(
-                        width: isLandscape ? 80 : 120,
-                        height: isLandscape ? 80 : 120,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(isLandscape ? 20 : 30),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.3),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Positioned(
-                              top: isLandscape ? 25 : 35,
-                              child: Icon(
-                                Icons.credit_card,
-                                size: isLandscape ? 25 : 40,
-                                color: Colors.blue.shade700,
-                              ),
-                            ),
-                            Positioned(
-                              top: isLandscape ? 30 : 45,
-                              child: Icon(
-                                Icons.credit_card,
-                                size: isLandscape ? 25 : 40,
-                                color: Colors.blue.shade500,
-                              ),
-                            ),
-                            Positioned(
-                              top: isLandscape ? 35 : 55,
-                              child: Icon(
-                                Icons.credit_card,
-                                size: isLandscape ? 25 : 40,
-                                color: Colors.blue.shade300,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      SizedBox(height: isLandscape ? 15 : 30),
-
                       // App Name (smaller in landscape)
                       Text(
                         'ProStack',
@@ -172,8 +125,11 @@ class HomeScreen extends StatelessWidget {
                           final hasAccess = provider.canAccessFeature('ai_resume');
 
                           if (!hasAccess) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Upgrade to Business to access Resume features')),
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const SubscriptionScreen(),
+                              ),
                             );
                             return;
                           }
@@ -196,13 +152,25 @@ class HomeScreen extends StatelessWidget {
                         subtitle: 'Certificates & degrees',
                         gradient: [Colors.green.shade600, Colors.green.shade800],
                         isPro: true,
-                        comingSoon: true,
+                        comingSoon: false,
                         isCompact: isLandscape,
                         onTap: () {
+                          final provider = Provider.of<SubscriptionProvider>(context, listen: false);
+                          final hasAccess = provider.canAccessFeature('credentials');
+
+                          if (!hasAccess) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const SubscriptionScreen(),
+                              ),
+                            );
+                            return;
+                          }
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const CredentialsScreen(),
+                              builder: (context) => const CredentialsListScreen(),
                             ),
                           );
                         },
@@ -216,13 +184,25 @@ class HomeScreen extends StatelessWidget {
                         subtitle: 'Showcase your work',
                         gradient: [Colors.orange.shade600, Colors.orange.shade800],
                         isPro: true,
-                        comingSoon: true,
+                        comingSoon: false,
                         isCompact: isLandscape,
                         onTap: () {
+                          final provider = Provider.of<SubscriptionProvider>(context, listen: false);
+                          final hasAccess = provider.canAccessFeature('portfolio');
+
+                          if (!hasAccess) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const SubscriptionScreen(),
+                              ),
+                            );
+                            return;
+                          }
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const PortfolioScreen(),
+                              builder: (context) => const PortfolioListScreen(),
                             ),
                           );
                         },
@@ -299,76 +279,83 @@ class HomeScreen extends StatelessWidget {
   void _showMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true, // 👈 allows the sheet to use more height & scroll if needed
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.contacts),
-              title: const Text('Business Cards'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const CardsListScreen(),
+      builder: (context) {
+        final padding = MediaQuery.of(context).viewPadding;
+
+        return SafeArea(
+          top: false, // we only care about the bottom edge here
+          child: SingleChildScrollView( // 👈 prevents RenderFlex overflow
+            child: Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: padding.bottom + 20, // 👈 adjusts for portrait + landscape
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.contacts),
+                    title: const Text('Business Cards'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const CardsListScreen(),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.workspace_premium),
-              title: const Text('Upgrade to Business'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const SubscriptionScreen(),
+                  ListTile(
+                    leading: const Icon(Icons.workspace_premium),
+                    title: const Text('Upgrade to Business'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const SubscriptionScreen(),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Settings coming soon!')),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.privacy_tip),
-              title: const Text('Privacy Policy'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const PrivacyPolicyScreen(),
+                  ListTile(
+                    leading: const Icon(Icons.privacy_tip),
+                    title: const Text('Privacy Policy'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PrivacyPolicyScreen(),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
+                  ListTile(
+                    leading: const Icon(Icons.info_outline),
+                    title: const Text('About ProStack'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _showAbout(context);
+                    },
+                  ),
+                ],
+              ),
             ),
-            ListTile(
-              leading: const Icon(Icons.info_outline),
-              title: const Text('About ProStack'),
-              onTap: () {
-                Navigator.pop(context);
-                _showAbout(context);
-              },
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
+
+
 
   void _showHelp(BuildContext context) {
     showDialog(
@@ -417,21 +404,14 @@ class HomeScreen extends StatelessWidget {
     showAboutDialog(
       context: context,
       applicationName: 'ProStack',
-      applicationVersion: '1.0.0',
-      applicationIcon: Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          color: Colors.blue,
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: const Stack(
-          alignment: Alignment.center,
-          children: [
-            Positioned(top: 10, child: Icon(Icons.credit_card, color: Colors.white70, size: 20)),
-            Positioned(top: 15, child: Icon(Icons.credit_card, color: Colors.white, size: 20)),
-            Positioned(top: 20, child: Icon(Icons.credit_card, color: Colors.white, size: 20)),
-          ],
+      applicationVersion: '1.0.1',
+      applicationIcon: ClipRRect(
+        borderRadius: BorderRadius.circular(16), // match your launcher radius
+        child: Image.asset(
+          'assets/icons/prostack_icon_foreground.png', // <-- your app icon path
+          width: 60,
+          height: 60,
+          fit: BoxFit.cover,
         ),
       ),
       children: [
@@ -524,27 +504,7 @@ class _FeatureButton extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            if (isPro) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.amber.shade300,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  'PRO',
-                                  style: TextStyle(
-                                    fontSize: isCompact ? 9 : 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                              ),
-                            ],
+                            
                             if (comingSoon) ...[
                               const SizedBox(width: 8),
                               Container(
@@ -557,7 +517,7 @@ class _FeatureButton extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
-                                  'SOON',
+                                  '',
                                   style: TextStyle(
                                     fontSize: isCompact ? 9 : 10,
                                     fontWeight: FontWeight.bold,

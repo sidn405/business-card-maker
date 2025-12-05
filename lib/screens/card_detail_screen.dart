@@ -149,26 +149,22 @@ class CardDetailScreen extends StatelessWidget {
                     onPressed: () => _showQRCode(context),
                     icon: const Icon(Icons.qr_code),
                     label: const Text('Show QR Code'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
                   ),
 
                   const SizedBox(height: 12),
 
                   // Delete button
-                  OutlinedButton.icon(
+                  ElevatedButton.icon(
                     onPressed: () => _deleteCard(context),
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    label: const Text(
-                      'Delete Card',
-                      style: TextStyle(color: Colors.red),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      side: const BorderSide(color: Colors.red),
+                    icon: const Icon(Icons.delete),
+                    label: const Text('Delete Card'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
                     ),
                   ),
+
+                  const SizedBox(height: 32), // Extra padding for nav bar
                 ],
               ),
             ),

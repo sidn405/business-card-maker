@@ -13,7 +13,7 @@ dependencies:
   device_info_plus: ^12.3.0
   screenshot: ^3.0.0
   # UI & Icons
-  cupertino_icons: ^1.0.6
+  cupertino_icons: ^1.0.8
   
   # Camera & Image
   camera: ^0.11.3
@@ -39,6 +39,9 @@ dependencies:
   share_plus: ^12.0.1
   qr_flutter: ^4.1.0
   url_launcher: ^6.2.1
+
+  # File Save
+  file_saver: ^0.2.7
   
   # In-App Purchase
   in_app_purchase: ^3.1.13
@@ -55,6 +58,14 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/prostack_icon_foreground.png"
+  adaptive_icon_background: "#02163b"   # or your main blue
+  adaptive_icon_foreground: "assets/icons/prostack_icon_foreground.png"
 
 flutter:
   uses-material-design: true
@@ -63,3 +74,4 @@ flutter:
     - assets/images/
     - assets/templates/
     - assets/logos/
+    - assets/icons/

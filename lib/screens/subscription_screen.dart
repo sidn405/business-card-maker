@@ -12,23 +12,14 @@ class SubscriptionScreen extends StatefulWidget {
 
 class _SubscriptionScreenState extends State<SubscriptionScreen> {
   bool _isYearly = true;
-  bool _showDebug = false;
+  
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Upgrade to Premium'),
+        title: const Text('Upgrade'),
         actions: [
-          // Debug toggle
-          IconButton(
-            onPressed: () {
-              setState(() {
-                _showDebug = !_showDebug;
-              });
-            },
-            icon: Icon(_showDebug ? Icons.bug_report : Icons.bug_report_outlined),
-          ),
           TextButton(
             onPressed: () async {
               final provider = Provider.of<SubscriptionProvider>(
@@ -69,10 +60,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
           return SingleChildScrollView(
             child: Column(
-              children: [
-                // Debug Info Panel
-                if (_showDebug) _buildDebugPanel(provider),
-                
+              children: [                
                 // Error Message
                 if (provider.lastError.isNotEmpty)
                   Container(
@@ -239,7 +227,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     'Custom card templates',
                     'Color themes',
                     'Company logo upload',
-                    'QR code generation',
+                    
                     
                   ],
                 ),
@@ -254,9 +242,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   features: [
                     'Everything in Premium',
                     'AI Resume Builder',
-                    'Bulk export (PDF/CSV)',
-                    'Advanced analytics',
-                    'Custom branding',
+                    'Credentials Storage',
+                    'Portfolio Display',         
+                                        
+                    
                   ],
                 ),
 
@@ -280,6 +269,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       _buildFeatureItem('Offline storage'),
                       _buildFeatureItem('Share via vCard'),
                       _buildFeatureItem('Search and organize'),
+                      _buildFeatureItem('QR Code'),
                     ],
                   ),
                 ),
@@ -304,62 +294,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             ),
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildDebugPanel(SubscriptionProvider provider) {
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade900,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '🐛 DEBUG INFO',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const Divider(color: Colors.white24),
-          _debugRow('IAP Available', provider.isAvailable.toString()),
-          _debugRow('Products Loaded', provider.products.length.toString()),
-          _debugRow('Current Tier', provider.currentSubscription.tier.toString()),
-          _debugRow('Is Active', provider.currentSubscription.isActive.toString()),
-          _debugRow('Loading', provider.isLoading.toString()),
-          const SizedBox(height: 8),
-          const Text(
-            'Loaded Products:',
-            style: TextStyle(color: Colors.white70, fontSize: 12),
-          ),
-          ...provider.products.map((p) => Text(
-            '  • ${p.id}',
-            style: const TextStyle(color: Colors.white54, fontSize: 11),
-          )),
-        ],
-      ),
-    );
-  }
-
-  Widget _debugRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        children: [
-          Text(
-            '$label: ',
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
-          ),
-          Text(
-            value,
-            style: const TextStyle(color: Colors.greenAccent, fontSize: 12),
-          ),
-        ],
       ),
     );
   }

@@ -496,6 +496,8 @@ class _CardEditScreenState extends State<CardEditScreen> {
                 style: const TextStyle(fontSize: 16),
               ),
             ),
+            
+            const SizedBox(height: 80), // Extra padding for nav bar
           ],
         ),
       ),
