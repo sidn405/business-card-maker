@@ -7,6 +7,15 @@ enum CardTemplateType {
   corporate,
   creative,
   elegant,
+  // Professional career-specific templates
+  medical,
+  legal,
+  tech,
+  finance,
+  realEstate,
+  consulting,
+  academic,
+  executive,
 }
 
 class CardTemplate {
@@ -84,6 +93,80 @@ class CardTemplate {
         description: 'Sophisticated and refined',
         primaryColor: const Color(0xFF37474F),
         secondaryColor: const Color(0xFFD4AF37),
+        textColor: Colors.white,
+        isPremium: true,
+      ),
+      
+      // Professional career-specific templates
+      CardTemplate(
+        type: CardTemplateType.medical,
+        name: 'Medical',
+        description: 'Healthcare professionals',
+        primaryColor: Colors.white,
+        secondaryColor: const Color(0xFF0277BD), // Medical blue
+        textColor: const Color(0xFF263238),
+        isPremium: true,
+      ),
+      CardTemplate(
+        type: CardTemplateType.legal,
+        name: 'Legal',
+        description: 'Law and legal services',
+        primaryColor: const Color(0xFF1A1A1A), // Deep black
+        secondaryColor: const Color(0xFFB8860B), // Dark gold
+        textColor: Colors.white,
+        isPremium: true,
+      ),
+      CardTemplate(
+        type: CardTemplateType.tech,
+        name: 'Tech',
+        description: 'Technology & engineering',
+        primaryColor: const Color(0xFF263238), // Charcoal
+        secondaryColor: const Color(0xFF00BCD4), // Cyan
+        textColor: Colors.white,
+        isPremium: true,
+      ),
+      CardTemplate(
+        type: CardTemplateType.finance,
+        name: 'Finance',
+        description: 'Banking & financial services',
+        primaryColor: const Color(0xFF0D47A1), // Navy blue
+        secondaryColor: const Color(0xFF1B5E20), // Forest green
+        textColor: Colors.white,
+        isPremium: true,
+      ),
+      CardTemplate(
+        type: CardTemplateType.realEstate,
+        name: 'Real Estate',
+        description: 'Property & real estate',
+        primaryColor: const Color(0xFFFAFAFA), // Off-white
+        secondaryColor: const Color(0xFFC62828), // Real estate red
+        textColor: const Color(0xFF212121),
+        isPremium: true,
+      ),
+      CardTemplate(
+        type: CardTemplateType.consulting,
+        name: 'Consulting',
+        description: 'Business consulting',
+        primaryColor: const Color(0xFF424242), // Dark gray
+        secondaryColor: const Color(0xFF5E35B1), // Deep purple
+        textColor: Colors.white,
+        isPremium: true,
+      ),
+      CardTemplate(
+        type: CardTemplateType.academic,
+        name: 'Academic',
+        description: 'Education & research',
+        primaryColor: const Color(0xFF4E342E), // Brown
+        secondaryColor: const Color(0xFFD4AF37), // Gold
+        textColor: Colors.white,
+        isPremium: true,
+      ),
+      CardTemplate(
+        type: CardTemplateType.executive,
+        name: 'Executive',
+        description: 'C-level executives',
+        primaryColor: const Color(0xFF212121), // True black
+        secondaryColor: const Color(0xFF9E9E9E), // Silver
         textColor: Colors.white,
         isPremium: true,
       ),

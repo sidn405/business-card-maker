@@ -11,6 +11,7 @@ import 'template_picker_screen.dart';  // ADD THIS
 import 'color_theme_picker_screen.dart';
 import 'logo_upload_screen.dart';
 import 'subscription_screen.dart';  // ADD THIS
+import '../widgets/business_card_preview.dart';  // ✅ ADD THIS for live preview
 
 class CardEditScreen extends StatefulWidget {
   final BusinessCard card;
@@ -55,6 +56,15 @@ class _CardEditScreenState extends State<CardEditScreen> {
     _selectedTemplate = widget.card.template;
     _selectedColorTheme = widget.card.colorTheme;  // ADD THIS
     _selectedLogoPath = widget.card.logoPath;      // ADD THIS
+    
+    // ✅ Add listeners to update preview when text changes
+    _nameController.addListener(() => setState(() {}));
+    _titleController.addListener(() => setState(() {}));
+    _companyController.addListener(() => setState(() {}));
+    _emailController.addListener(() => setState(() {}));
+    _phoneController.addListener(() => setState(() {}));
+    _websiteController.addListener(() => setState(() {}));
+    _addressController.addListener(() => setState(() {}));
   }
 
   @override
@@ -68,6 +78,22 @@ class _CardEditScreenState extends State<CardEditScreen> {
     _addressController.dispose();
     _notesController.dispose();
     super.dispose();
+  }
+
+  // ✅ Create a preview card from current state
+  BusinessCard _buildPreviewCard() {
+    return widget.card.copyWith(
+      name: _nameController.text.trim().isEmpty ? 'Your Name' : _nameController.text.trim(),
+      title: _titleController.text.trim(),
+      company: _companyController.text.trim(),
+      email: _emailController.text.trim(),
+      phone: _phoneController.text.trim(),
+      website: _websiteController.text.trim(),
+      address: _addressController.text.trim(),
+      template: _selectedTemplate,
+      colorTheme: _selectedColorTheme,
+      logoPath: _selectedLogoPath,
+    );
   }
 
   Future<void> _saveCard() async {
@@ -147,6 +173,53 @@ class _CardEditScreenState extends State<CardEditScreen> {
                   fit: BoxFit.cover,
                 ),
               ),
+
+            const SizedBox(height: 20),
+            
+            // ✅ LIVE PREVIEW - Shows how the card will look
+            Card(
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.visibility, color: Colors.blue, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'Live Preview',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 12),
+                    Center(
+                      child: BusinessCardPreview(
+                        key: ValueKey('${_selectedTemplate}_${_selectedLogoPath}_${_selectedColorTheme}_${_nameController.text}'),
+                        card: _buildPreviewCard(),
+                        width: 340,
+                        height: 200,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'This is how your card will look',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                        fontStyle: FontStyle.italic,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
             const SizedBox(height: 20),
             

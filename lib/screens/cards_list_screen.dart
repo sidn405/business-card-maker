@@ -11,6 +11,9 @@ import 'card_detail_screen.dart';
 import 'subscription_screen.dart';
 import 'premium_features_screen.dart';
 import '../models/subscription.dart';
+import '../widgets/business_card_preview.dart';
+import '../services/card_pdf_generator.dart';  // ✅ ADD THIS
+import 'package:cross_file/cross_file.dart';  // ✅ ADD THIS for XFile
 
 class CardsListScreen extends StatefulWidget {
   const CardsListScreen({Key? key}) : super(key: key);
@@ -143,7 +146,6 @@ class _CardsListScreenState extends State<CardsListScreen> {
                   const Text('✓ Unlimited business cards'),
                   const Text('✓ Custom card templates'),
                   const Text('✓ Company logo upload'),
-                  const Text('✓ QR code generation'),
                 ],
               ),
             ),
@@ -332,7 +334,8 @@ class _BusinessCardTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 3,
       child: InkWell(
         onTap: () {
           Navigator.of(context).push(
@@ -343,113 +346,102 @@ class _BusinessCardTile extends StatelessWidget {
         },
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Card image or placeholder
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  color: Colors.grey[200],
-                ),
-                child: card.imagePath != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.file(
-                          File(card.imagePath!),
-                          fit: BoxFit.cover,
-                        ),
-                      )
-                    : Icon(
-                        Icons.person,
-                        size: 30,
-                        color: Colors.grey[400],
-                      ),
-              ),
-              
-              const SizedBox(width: 16),
-              
-              // Card details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      card.name,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    if (card.title.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        card.title,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                    if (card.company.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        card.company,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ],
+              // ✅ Show the actual business card preview
+              Center(
+                child: BusinessCardPreview(
+                  key: ValueKey(card.id),
+                  card: card,
+                  width: MediaQuery.of(context).size.width - 64,
+                  height: (MediaQuery.of(context).size.width - 64) * 0.57, // Business card ratio
                 ),
               ),
               
-              // Quick actions
-              PopupMenuButton<String>(
-                onSelected: (value) {
-                  if (value == 'share') {
-                    Share.share(card.toVCard());
-                  } else if (value == 'edit') {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => CardEditScreen(card: card),
+              const SizedBox(height: 12),
+              
+              // Action buttons row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  // Share button
+                  TextButton.icon(
+                    onPressed: () {
+                      Share.share(card.toVCard());
+                    },
+                    icon: const Icon(Icons.share, size: 18),
+                    label: const Text('Share'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.blue,
+                    ),
+                  ),
+                  
+                  // Print/PDF button
+                  PopupMenuButton<String>(
+                    onSelected: (value) async {
+                      if (value == 'single') {
+                        await _exportSingleCardPdf(context, card);
+                      } else if (value == 'sheet') {
+                        await _exportCardSheetPdf(context, card);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'single',
+                        child: Row(
+                          children: [
+                            Icon(Icons.picture_as_pdf, size: 18),
+                            SizedBox(width: 8),
+                            Text('Single Card PDF'),
+                          ],
+                        ),
                       ),
-                    );
-                  } else if (value == 'delete') {
-                    _showDeleteDialog(context, card);
-                  }
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'share',
+                      const PopupMenuItem(
+                        value: 'sheet',
+                        child: Row(
+                          children: [
+                            Icon(Icons.grid_on, size: 18),
+                            SizedBox(width: 8),
+                            Text('Sheet (10 cards)'),
+                          ],
+                        ),
+                      ),
+                    ],
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.share),
-                        SizedBox(width: 8),
-                        Text('Share'),
+                        Icon(Icons.print, size: 18, color: Colors.purple),
+                        SizedBox(width: 4),
+                        Text('Print', style: TextStyle(color: Colors.purple)),
+                        Icon(Icons.arrow_drop_down, size: 18, color: Colors.purple),
                       ],
                     ),
                   ),
-                  const PopupMenuItem(
-                    value: 'edit',
-                    child: Row(
-                      children: [
-                        Icon(Icons.edit),
-                        SizedBox(width: 8),
-                        Text('Edit'),
-                      ],
+                  
+                  // Edit button
+                  TextButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => CardEditScreen(card: card),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.edit, size: 18),
+                    label: const Text('Edit'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.green,
                     ),
                   ),
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete, color: Colors.red),
-                        SizedBox(width: 8),
-                        Text('Delete', style: TextStyle(color: Colors.red)),
-                      ],
+                  
+                  // Delete button
+                  TextButton.icon(
+                    onPressed: () => _showDeleteDialog(context, card),
+                    icon: const Icon(Icons.delete, size: 18),
+                    label: const Text('Delete'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.red,
                     ),
                   ),
                 ],
@@ -486,6 +478,110 @@ class _BusinessCardTile extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _exportSingleCardPdf(BuildContext context, BusinessCard card) async {
+    try {
+      // Show loading
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              ),
+              SizedBox(width: 12),
+              Text('Generating PDF...'),
+            ],
+          ),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // Generate PDF
+      final pdfFile = await CardPdfGenerator.generateSingleCardPdf(card);
+
+      // Share PDF
+      await Share.shareXFiles(
+        [XFile(pdfFile.path)],
+        subject: '${card.name} - Business Card',
+        text: 'Business card for ${card.name}',
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('PDF created: ${pdfFile.path.split('/').last}'),
+            action: SnackBarAction(
+              label: 'Open',
+              onPressed: () {
+                Share.shareXFiles([XFile(pdfFile.path)]);
+              },
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error creating PDF: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _exportCardSheetPdf(BuildContext context, BusinessCard card) async {
+    try {
+      // Show loading
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              ),
+              SizedBox(width: 12),
+              Text('Generating sheet with 10 cards...'),
+            ],
+          ),
+          duration: Duration(seconds: 3),
+        ),
+      );
+
+      // Generate PDF sheet
+      final pdfFile = await CardPdfGenerator.generateMultiCardPdf(card, cardsPerPage: 10);
+
+      // Share PDF
+      await Share.shareXFiles(
+        [XFile(pdfFile.path)],
+        subject: '${card.name} - Business Card Sheet',
+        text: 'Printable sheet with 10 business cards for ${card.name}',
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('PDF sheet created: ${pdfFile.path.split('/').last}'),
+            action: SnackBarAction(
+              label: 'Open',
+              onPressed: () {
+                Share.shareXFiles([XFile(pdfFile.path)]);
+              },
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error creating PDF: $e')),
+        );
+      }
+    }
   }
 }
 
